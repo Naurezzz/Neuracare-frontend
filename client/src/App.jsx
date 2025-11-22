@@ -5,7 +5,8 @@ import Home from './pages/Home';
 import EyeDisease from './pages/EyeDisease';
 import MentalHealth from './pages/MentalHealth';
 import PublicHealth from './pages/PublicHealth';
-import CognitiveHealth from './pages/CognitiveHealth';
+import DyselexiaAgent from "./pages/DyslexiaAgent"
+import Auth from './pages/Auth';
 
 function App() {
   return (
@@ -15,10 +16,11 @@ function App() {
         <main className="container mx-auto px-4 py-8">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/eye" element={<EyeDisease />} />
             <Route path="/mental-health" element={<MentalHealth />} />
             <Route path="/care-intel-ai" element={<PublicHealth />} />
-            <Route path="/cognitive-health" element={<CognitiveHealth />} />
+            <Route path="/dyslexia" element={<DyselexiaAgent />} />
           </Routes>
         </main>
         <Footer />
