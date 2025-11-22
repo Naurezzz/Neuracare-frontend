@@ -9,7 +9,12 @@ import {
   Activity,
   CheckCircle2,
   AlertCircle,
-  Zap,
+   Zap,
+  Mic,          
+  Bot,      
+  HeartHandshake, 
+  Menu,     
+  X   
 } from "lucide-react";
 
 // --- 1. Internal CSS for Animations ---
@@ -174,19 +179,26 @@ const ECGMonitor = () => {
 
 // --- 3. Main Home Component ---
 const Home = () => {
-  const services = [
+   const services = [
     {
-      title: "Cognitive Assessment",
-      description: "Speech disorder and dyslexia screening using advanced AI",
-      icon: Heart,
-      link: "/cognitive-health",
-      stats: "90-100% Accuracy",
+      title: "Dyslexia Screening",
+      description: "AI-powered reading, writing, and comprehension assessment for early dyslexia detection",
+      icon: Brain,
+      link: "/dyslexia",
+      stats: "High Precision",
+    },
+    {
+      title: "Speech Disorder Screening",
+      description: "Real-time speech analysis to detect articulation, fluency, and language disorders",
+      icon: Mic, // Updated from Heart to Mic
+      link: "/speech",
+      stats: "Clinically Aligned",
     },
     {
       title: "Mental Health Support",
       description:
         "Confidential AI chat with crisis detection and PHQ-9 screening",
-      icon: Brain,
+      icon: HeartHandshake, // Updated from Brain to HeartHandshake
       link: "/mental-health",
       stats: "95%+ Accuracy",
     },
@@ -202,7 +214,7 @@ const Home = () => {
       title: "CareIntel AI",
       description:
         "Real-time health stats, news, smart Q&A, report summaries, and actionable solutions",
-      icon: Shield,
+      icon: Bot, // Updated from Shield to Bot
       link: "/public-health",
       stats: "RAG-Powered",
     },
@@ -376,7 +388,7 @@ const Home = () => {
                     </p>
                     <ul className="space-y-4 mt-6">
                       {[
-                        "Instant results (< 5 seconds)",
+                        "Instant results in seconds",
                         "95%+ Accuracy on screenings",
                         "Available 24/7, anywhere",
                       ].map((item, i) => (
@@ -397,7 +409,7 @@ const Home = () => {
         </section>
 
         {/* ================= SERVICES SECTION ================= */}
-        <section id="services" className="relative z-10">
+        <section id="services" className="pt-20 relative z-10">
           <RevealOnScroll>
             <div className="text-center mb-16 lg:mb-20">
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6">
@@ -413,33 +425,46 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
             {services.map((service, index) => {
               const Icon = service.icon;
+              // Logic to center the last card:
+              // If it is the last item, make it span 2 columns (on md screens)
+              // and restrict width to 50% so it looks like a single centered card.
+              const isLast = index === services.length - 1;
+
               return (
                 <RevealOnScroll key={service.title} delay={index * 100}>
-                  <Link
-                    to={service.link}
-                    className="group bg-white rounded-[2rem] p-10 lg:p-12 border border-gray-200 hover:border-cyan-200 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 block h-full"
+                  <div
+                    className={`h-full ${
+                      isLast ? "md:col-span-2 flex justify-center" : ""
+                    }`}
                   >
-                    <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-cyan-100 to-teal-100 rounded-2xl flex items-center justify-center mb-8 group-hover:from-cyan-200 group-hover:to-teal-200 transition-all group-hover:scale-110 group-hover:rotate-3">
-                      <Icon className="w-8 h-8 lg:w-10 lg:h-10 text-cyan-600" />
-                    </div>
-                    <h3 className="text-3xl lg:text-4xl font-bold mb-4 text-slate-900 group-hover:text-cyan-700 transition-colors">
-                      {service.title}
-                    </h3>
-                    <p className="text-slate-600 mb-8 leading-relaxed text-lg lg:text-xl">
-                      {service.description}
-                    </p>
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="px-5 py-2.5 bg-cyan-50 text-cyan-700 rounded-xl text-base font-bold border border-cyan-100 group-hover:bg-cyan-100 transition-colors">
-                        {service.stats}
-                      </span>
-                      <ArrowRight className="w-8 h-8 text-slate-300 group-hover:text-cyan-600 group-hover:translate-x-2 transition-all" />
-                    </div>
-                  </Link>
+                    <Link
+                      to={service.link}
+                      className={`group bg-white rounded-[2rem] p-10 lg:p-12 border border-gray-200 hover:border-cyan-200 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 flex flex-col h-full w-full ${
+                        isLast ? " md:max-w-[calc(100%-1.25rem)]" : ""
+                      }`}
+                    >
+                      <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-cyan-100 to-teal-100 rounded-2xl flex items-center justify-center mb-8 group-hover:from-cyan-200 group-hover:to-teal-200 transition-all group-hover:scale-110 group-hover:rotate-3">
+                        <Icon className="w-8 h-8 lg:w-10 lg:h-10 text-cyan-600" />
+                      </div>
+                      <h3 className="text-3xl lg:text-4xl font-bold mb-4 text-slate-900 group-hover:text-cyan-700 transition-colors">
+                        {service.title}
+                      </h3>
+                      <p className="text-slate-600 mb-8 leading-relaxed text-lg lg:text-xl flex-grow">
+                        {service.description}
+                      </p>
+                      <div className="flex items-center justify-between mt-auto">
+                        <span className="px-5 py-2.5 bg-cyan-50 text-cyan-700 rounded-xl text-base font-bold border border-cyan-100 group-hover:bg-cyan-100 transition-colors">
+                          {service.stats}
+                        </span>
+                        <ArrowRight className="w-8 h-8 text-slate-300 group-hover:text-cyan-600 group-hover:translate-x-2 transition-all" />
+                      </div>
+                    </Link>
+                  </div>
                 </RevealOnScroll>
               );
             })}
           </div>
-        </section>
+        </section>  
 
         {/* ================= FEATURES SECTION ================= */}
         <section

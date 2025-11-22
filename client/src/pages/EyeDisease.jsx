@@ -1,6 +1,72 @@
-import { useState } from 'react';
-import { Upload, Eye, AlertCircle, CheckCircle, Loader } from 'lucide-react';
-import { mlServices } from '../services/api';
+import React, { useState, useEffect, useRef } from "react";
+import { 
+  Upload, 
+  Eye, 
+  AlertCircle, 
+  CheckCircle2, 
+  Loader, 
+  FileText, 
+  Bot,
+  Activity,
+  ArrowRight
+} from "lucide-react";
+import { mlServices } from "../services/api";
+
+// --- 1. Internal CSS (Exact match from Home.jsx) ---
+const customStyles = `
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+  }
+  .animate-float-slow { animation: float 6s ease-in-out infinite; }
+  .animate-float-medium { animation: float 5s ease-in-out infinite; }
+  
+  .reveal-section {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+    will-change: opacity, transform;
+  }
+  .reveal-section.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+// --- 2. Helper Components ---
+
+// Scroll Animation Wrapper (Reused from Home.jsx)
+const RevealOnScroll = ({ children, delay = 0 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => { if (ref.current) observer.disconnect(); };
+  }, []);
+
+  return (
+    <div ref={ref} className={`reveal-section ${isVisible ? "is-visible" : ""}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+};
+
+// Background Icon (Reused from Home.jsx)
+const BackgroundIcon = ({ icon: Icon, className }) => (
+  <div className={`absolute opacity-5 md:opacity-10 pointer-events-none select-none ${className}`} aria-hidden="true">
+    <Icon className="w-full h-full" />
+  </div>
+);
 
 const EyeDisease = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -21,10 +87,9 @@ const EyeDisease = () => {
 
   const handleAnalyze = async () => {
     if (!selectedImage) {
-      setError('Please select an image first');
+      setError("Please select an image first");
       return;
     }
-
     setLoading(true);
     setError(null);
 
@@ -32,175 +97,238 @@ const EyeDisease = () => {
       const response = await mlServices.analyzeEyeImage(selectedImage);
       setResult(response.data.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Analysis failed. Please try again.');
+      setError(err.response?.data?.error || "Analysis failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Simply mapping severity to standard Tailwind colors
   const getSeverityColor = (severity) => {
     const colors = {
-      none: 'green',
-      mild: 'yellow',
-      moderate: 'orange',
-      high: 'red',
-      urgent: 'red',
+      none: "emerald", // Green
+      mild: "yellow",
+      moderate: "orange",
+      high: "red",
+      urgent: "red",
     };
-    return colors[severity] || 'gray';
+    return colors[severity] || "slate";
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <Eye className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-        <h1 className="text-4xl font-bold mb-4 text-gray-800">Eye Disease Detection</h1>
-        <p className="text-lg text-gray-600">
-          AI-powered detection for Glaucoma, Cataract, and Diabetic Retinopathy
-        </p>
-        <div className="mt-4 inline-block px-6 py-2 bg-blue-100 text-blue-800 rounded-full font-semibold">
-          92-96% Accuracy
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Upload Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">Upload Eye Image</h2>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50/30 to-slate-100 overflow-x-hidden font-sans">
+      <style>{customStyles}</style>
+      
+      <div className="max-w-[90rem] mx-auto px-6 py-8 lg:py-16">
+        
+        {/* ================= HEADER ================= */}
+        <section className="relative py-12 flex flex-col items-center text-center mb-12">
+          <BackgroundIcon icon={Eye} className="w-48 h-48 top-0 left-10 text-cyan-500 animate-float-slow" />
+          <BackgroundIcon icon={Activity} className="w-32 h-32 bottom-0 right-10 text-teal-400 animate-float-medium" />
           
-          {/* Upload Area */}
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-              id="image-upload"
-            />
-            <label htmlFor="image-upload" className="cursor-pointer">
-              {preview ? (
-                <img src={preview} alt="Preview" className="max-h-64 mx-auto rounded-lg mb-4" />
-              ) : (
-                <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              )}
-              <p className="text-gray-600 mb-2">
-                {preview ? 'Click to change image' : 'Click to upload or drag and drop'}
-              </p>
-              <p className="text-sm text-gray-400">PNG, JPG up to 10MB</p>
-            </label>
-          </div>
-
-          {/* Analyze Button */}
-          <button
-            onClick={handleAnalyze}
-            disabled={!selectedImage || loading}
-            className="w-full mt-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
-          >
-            {loading ? (
-              <>
-                <Loader className="w-5 h-5 mr-2 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              'Analyze Image'
-            )}
-          </button>
-
-          {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-2 mt-0.5" />
-              <p className="text-red-700">{error}</p>
+          <RevealOnScroll>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-50 text-cyan-700 rounded-full font-bold text-sm mb-6 border border-cyan-100">
+              <Eye className="w-4 h-4" />
+              Ophthalmology AI Model
             </div>
-          )}
-        </div>
+            <h1 className="text-4xl md:text-6xl font-bold text-slate-900 mb-6 tracking-tight">
+              Eye Disease Detection
+            </h1>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              Upload a fundus image to screen for Glaucoma, Cataract, and Diabetic Retinopathy with clinical-grade accuracy.
+            </p>
+          </RevealOnScroll>
+        </section>
 
-        {/* Results Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">Analysis Results</h2>
+        {/* ================= MAIN INTERFACE ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
           
-          {result ? (
-            <div className="space-y-6">
-              {/* Disease Detection */}
-              <div className={`p-6 rounded-xl bg-${getSeverityColor(result.severity)}-50 border-2 border-${getSeverityColor(result.severity)}-200`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-gray-800">Detected Condition</h3>
-                  <CheckCircle className={`w-6 h-6 text-${getSeverityColor(result.severity)}-600`} />
+          {/* LEFT: Upload Section */}
+          <RevealOnScroll delay={100}>
+            <div className="bg-white border border-gray-200 rounded-[2rem] p-8 lg:p-12 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden h-full">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center text-cyan-600">
+                  <Upload className="w-6 h-6" />
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">
-                  {result.disease.replace('_', ' ')}
-                </div>
-                <div className="text-lg text-gray-600">
-                  Confidence: {(result.confidence * 100).toFixed(2)}%
-                </div>
-                <div className="mt-2 inline-block px-4 py-1 bg-white rounded-full text-sm font-semibold">
-                  Severity: {result.severity.toUpperCase()}
-                </div>
+                <h2 className="text-2xl font-bold text-slate-900">Upload Scan</h2>
               </div>
 
-              {/* All Probabilities */}
-              <div>
-                <h4 className="font-bold mb-3 text-gray-800">All Predictions</h4>
-                <div className="space-y-2">
-                  {Object.entries(result.all_probabilities).map(([disease, prob]) => (
-                    <div key={disease} className="flex items-center">
-                      <span className="text-sm text-gray-600 w-40">{disease.replace('_', ' ')}</span>
-                      <div className="flex-1 bg-gray-200 rounded-full h-2 mx-3">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all"
-                          style={{ width: `${prob * 100}%` }}
-                        />
+              <div className="group">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className={`
+                    relative flex flex-col items-center justify-center w-full h-80 
+                    border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300
+                    ${preview 
+                      ? 'border-cyan-200 bg-cyan-50/30' 
+                      : 'border-slate-300 hover:border-cyan-400 hover:bg-slate-50'
+                    }
+                  `}
+                >
+                  {preview ? (
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="h-full w-full object-contain p-4 rounded-2xl"
+                    />
+                  ) : (
+                    <div className="text-center p-6">
+                      <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                        <Eye className="w-8 h-8" />
                       </div>
-                      <span className="text-sm font-semibold text-gray-700">
-                        {(prob * 100).toFixed(1)}%
-                      </span>
+                      <p className="text-lg font-semibold text-slate-700">Click or drag image here</p>
+                      <p className="text-slate-400 text-sm mt-2">Supports JPG, PNG (Max 10MB)</p>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </label>
               </div>
 
-              {/* Recommendations */}
-              <div className="bg-blue-50 rounded-xl p-6">
-                <h4 className="font-bold mb-3 text-gray-800">Recommendations</h4>
-                <p className="text-gray-700 mb-4">{result.recommendations.message}</p>
-                <ul className="space-y-2">
-                  {result.recommendations.actions?.map((action, index) => (
-                    <li key={index} className="flex items-start">
-                      <CheckCircle className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700">{action}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-4 p-3 bg-white rounded-lg">
-                  <span className="font-semibold text-gray-800">Follow-up: </span>
-                  <span className="text-gray-700">{result.recommendations.follow_up}</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center text-gray-400 py-12">
-              <Eye className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>Upload and analyze an eye image to see results</p>
-            </div>
-          )}
-        </div>
-      </div>
+              <button
+                onClick={handleAnalyze}
+                disabled={!selectedImage || loading}
+                className="w-full mt-8 py-4 bg-cyan-600 text-white rounded-xl font-bold hover:bg-cyan-700 transition-all shadow-lg hover:shadow-cyan-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg"
+              >
+                {loading ? (
+                  <>
+                    <Loader className="w-6 h-6 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Analyze Image <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
 
-      {/* Info Section */}
-      <div className="mt-12 bg-white rounded-2xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">Detectable Conditions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { name: 'Normal', desc: 'Healthy eyes with no detected issues' },
-            { name: 'Diabetic Retinopathy', desc: 'Retinal damage from diabetes' },
-            { name: 'Glaucoma', desc: 'Optic nerve damage causing vision loss' },
-            { name: 'Cataract', desc: 'Clouding of the eye lens' },
-          ].map((condition) => (
-            <div key={condition.name} className="p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition">
-              <h3 className="font-bold text-gray-800 mb-2">{condition.name}</h3>
-              <p className="text-sm text-gray-600">{condition.desc}</p>
+              {error && (
+                <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 animate-pulse">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <p className="font-medium">{error}</p>
+                </div>
+              )}
             </div>
-          ))}
+          </RevealOnScroll>
+
+          {/* RIGHT: Results Section */}
+          <RevealOnScroll delay={200}>
+            <div className={`
+              bg-white border border-gray-200 rounded-[2rem] p-8 lg:p-12 shadow-xl transition-all duration-500 h-full flex flex-col
+              ${!result ? 'justify-center items-center text-center min-h-[600px]' : ''}
+            `}>
+              {result ? (
+                <div className="w-full space-y-8">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-6">
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                      <Activity className="w-6 h-6 text-cyan-600" />
+                      Analysis Results
+                    </h2>
+                    <span className={`px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider bg-${getSeverityColor(result.severity)}-100 text-${getSeverityColor(result.severity)}-700`}>
+                      {result.severity}
+                    </span>
+                  </div>
+
+                  {/* Main Disease Card */}
+                  <div className={`p-6 rounded-2xl bg-slate-50 border border-${getSeverityColor(result.severity)}-200 relative overflow-hidden`}>
+                     <div className={`absolute top-0 left-0 w-2 h-full bg-${getSeverityColor(result.severity)}-500`}></div>
+                     <p className="text-slate-500 font-medium mb-1">Detected Condition</p>
+                     <div className="flex justify-between items-end">
+                       <h3 className="text-3xl font-bold text-slate-900">
+                         {result.disease.replace("_", " ")}
+                       </h3>
+                       <div className="text-right">
+                         <span className="text-3xl font-bold text-cyan-600">{(result.confidence * 100).toFixed(1)}%</span>
+                         <p className="text-xs text-slate-400 uppercase font-bold">Confidence</p>
+                       </div>
+                     </div>
+                  </div>
+
+                  {/* Probabilities */}
+                  <div className="space-y-4">
+                    <p className="text-slate-900 font-bold text-lg">Prediction Breakdown</p>
+                    {Object.entries(result.all_probabilities).map(([disease, prob]) => (
+                      <div key={disease}>
+                        <div className="flex justify-between text-sm font-medium text-slate-600 mb-2">
+                          <span>{disease.replace("_", " ")}</span>
+                          <span>{(prob * 100).toFixed(1)}%</span>
+                        </div>
+                        <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-cyan-500 rounded-full transition-all duration-1000 ease-out"
+                            style={{ width: `${prob * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Recommendations */}
+                  <div className="bg-cyan-50/50 rounded-2xl p-6 border border-cyan-100">
+                    <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-cyan-600" />
+                      AI Recommendation
+                    </h4>
+                    <p className="text-slate-700 leading-relaxed mb-4">
+                      {result.recommendations.message}
+                    </p>
+                    <div className="text-sm font-semibold text-cyan-800">
+                      Follow-up: {result.recommendations.follow_up}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons (Requested) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                    <button className="flex items-center justify-center gap-2 px-6 py-4 bg-cyan-600 text-white rounded-xl font-bold hover:bg-cyan-700 transition-all shadow-md hover:shadow-lg hover:-translate-y-1">
+                      <Bot className="w-5 h-5" />
+                      Summarize with CareIntel
+                    </button>
+                    <button className="flex items-center justify-center gap-2 px-6 py-4 bg-white text-slate-700 border-2 border-gray-200 rounded-xl font-bold hover:border-cyan-200 hover:bg-gray-50 transition-all hover:-translate-y-1">
+                      <FileText className="w-5 h-5" />
+                      Download Report
+                    </button>
+                  </div>
+
+                </div>
+              ) : (
+                // Empty State
+                <>
+                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                    <Activity className="w-12 h-12 text-slate-300" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-2">Awaiting Analysis</h3>
+                  <p className="text-slate-500 max-w-xs mx-auto">
+                    Upload a scan on the left to generate a detailed medical report.
+                  </p>
+                </>
+              )}
+            </div>
+          </RevealOnScroll>
         </div>
+
+        {/* ================= INFO CARDS ================= */}
+        <RevealOnScroll delay={300}>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-20">
+            {[
+              { name: "Normal", desc: "No significant abnormalities detected." },
+              { name: "Diabetic Retinopathy", desc: "Damage to blood vessels in the tissue at the back of the eye." },
+              { name: "Glaucoma", desc: "Damage to the optic nerve, often linked to high pressure." },
+              { name: "Cataract", desc: "Clouding of the normally clear lens of the eye." },
+            ].map((item) => (
+              <div key={item.name} className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-cyan-300 hover:shadow-lg transition-all">
+                <h3 className="font-bold text-slate-900 mb-2 text-lg">{item.name}</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </RevealOnScroll>
+
       </div>
     </div>
   );
